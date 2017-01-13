@@ -128,20 +128,20 @@ def external_profiles(template):
     res = []
     if template is sc.templates.gemm_nn:
         res += [sc.templates.cublas_gemm('N','N')]
-        res += [sc.templates.intelblas_gemm('N','N')]
-        res += [sc.templates.intelblas_gemm_image('N','N')]
+        #res += [sc.templates.intelblas_gemm('N','N')]
+        #res += [sc.templates.intelblas_gemm_image('N','N')]
     elif template is sc.templates.gemm_tn:
         res += [sc.templates.cublas_gemm('T','N')]
-        res += [sc.templates.intelblas_gemm('T','N')]
-        res += [sc.templates.intelblas_gemm_image('T','N')]
+        #res += [sc.templates.intelblas_gemm('T','N')]
+        #res += [sc.templates.intelblas_gemm_image('T','N')]
     elif template is sc.templates.gemm_nt:
         res += [sc.templates.cublas_gemm('N','T')]
-        res += [sc.templates.intelblas_gemm('N','T')]
-        res += [sc.templates.intelblas_gemm_image('N','T')]
+        #res += [sc.templates.intelblas_gemm('N','T')]
+        #res += [sc.templates.intelblas_gemm_image('N','T')]
     elif template is sc.templates.gemm_tt:
         res += [sc.templates.cublas_gemm('T','T')]
-        res += [sc.templates.intelblas_gemm('T','T')]
-        res += [sc.templates.intelblas_gemm_image('T','T')]
+        #res += [sc.templates.intelblas_gemm('T','T')]
+        #res += [sc.templates.intelblas_gemm_image('T','T')]
     return res
         
 def genetic_infos_of(template):
