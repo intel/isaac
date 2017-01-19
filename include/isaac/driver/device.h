@@ -65,6 +65,7 @@ public:
       //Intel
       HASWELL,
       BROADWELL,
+      SKYLAKE,
 
       //NVidia
       SM_2_0,

@@ -47,6 +47,10 @@ foreach(FILE ${LIBISAAC_SRC})
     set(LIBISAAC_SRC_STR "${_TMP} ${LIBISAAC_SRC_STR}")
 endforeach()
 
+#Set INTEL arch
+set(INTEL_ARCH "BROADWELL" CACHE STRING "Selected BLAS library")
+  set_property(CACHE INTEL_ARCH PROPERTY STRINGS "BROADWELL;SKYLAKE")
+
 
 
 #Include directories
