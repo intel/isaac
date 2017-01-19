@@ -62,7 +62,7 @@ class Tuner:
         device = self.device
         operation = self.operation
         context = sc.driver.context(device)
-        
+
         if self.logger:
             self.logger.info("----------------")
             self.logger.info(operation.__name__.replace('_','-').upper())
@@ -141,59 +141,60 @@ class Tuner:
             for (fname, data) in zip(['X.csv',  'Y.csv', 'profiles.csv'], [X, Y, profiles]):
                 with open(os.path.join(savepath, fname), 'wb') as f:
                     csv.writer(f).writerows(data)
-        #Tuning
-        for idx, x in enumerate(sizes):
-            #Create new line on log
-            if idx>0:
-             self.progress_bar.set_finished()
-            self.progress_bar.set_prefix(', '.join(map(str, x)))
-            #Skip if already saved
-            if x in X:
-                row = Y[X.index(x)]
-                self.progress_bar.update(1, 1, profiles[argmax(row)], max(row))
-                continue
-            #Best existing profile for x
-            tree, operands = tools.tree_of(operation, x, context)
-            y = [performance(x, tools.benchmark(operation(*p), tree)) for p in profiles]
-            best = profiles[np.argmax(y)] if y else None            
-            #Retune if necessary
-            tune =  not (best and optimize.is_local_optimum(best, operation, x, context))
-            if tune:
-                optimizer = optimize.GeneticOptimizer(self.logger, naccept=1000, niter=1000, cxpb=.4, mutpb=.4, popsize=20, progress_bar = self.progress_bar)
-                best = optimizer.run(operation, x, context, prior=best)[0]
-                if best not in profiles:
-                    profiles.append(best)
-                    for xx,yy in zip(X, Y):
-                        tree, _ = tools.tree_of(operation, xx, context)
-                        time = tools.benchmark(operation(*best), tree)
-                        yy.append(performance(xx, time))
-            #Update dataset
-            X.append(x)
-            tree, operands = tools.tree_of(operation, x, context)
-            y = [performance(x,tools.benchmark(operation(*prf), tree)) for prf in profiles]
-            Y.append(y)
-            #Save data
+        if not (operation in [sc.templates.gemm_nn, sc.templates.gemm_nt, sc.templates.gemm_tn, sc.templates.gemm_tt] and 'intel' in device.name.lower() and 'float32' in tools.dtype.__name__):
+            #Tuning
+            for idx, x in enumerate(sizes):
+                #Create new line on log
+                if idx>0:
+                 self.progress_bar.set_finished()
+                self.progress_bar.set_prefix(', '.join(map(str, x)))
+                #Skip if already saved
+                if x in X:
+                    row = Y[X.index(x)]
+                    self.progress_bar.update(1, 1, profiles[argmax(row)], max(row))
+                    continue
+                #Best existing profile for x
+                tree, operands = tools.tree_of(operation, x, context)
+                y = [performance(x, tools.benchmark(operation(*p), tree)) for p in profiles]
+                best = profiles[np.argmax(y)] if y else None
+                #Retune if necessary
+                tune =  not (best and optimize.is_local_optimum(best, operation, x, context))
+                if tune:
+                    optimizer = optimize.GeneticOptimizer(self.logger, naccept=1000, niter=1000, cxpb=.4, mutpb=.4, popsize=20, progress_bar = self.progress_bar)
+                    best = optimizer.run(operation, x, context, prior=best)[0]
+                    if best not in profiles:
+                        profiles.append(best)
+                        for xx,yy in zip(X, Y):
+                            tree, _ = tools.tree_of(operation, xx, context)
+                            time = tools.benchmark(operation(*best), tree)
+                            yy.append(performance(xx, time))
+                #Update dataset
+                X.append(x)
+                tree, operands = tools.tree_of(operation, x, context)
+                y = [performance(x,tools.benchmark(operation(*prf), tree)) for prf in profiles]
+                Y.append(y)
+                #Save data
+                save()
+                #print performance info in case no tuning was done
+                if not tune:
+                    row = Y[X.index(x)]
+                    self.progress_bar.update(1, 1, profiles[argmax(row)], max(row))
+            self.progress_bar.set_finished()
             save()
-            #print performance info in case no tuning was done
-            if not tune:
-                row = Y[X.index(x)]
-                self.progress_bar.update(1, 1, profiles[argmax(row)], max(row))
-        self.progress_bar.set_finished()
-        save()     
-        #Adding external profiles
-        for prof in tools.external_profiles(operation):
-			profiles.append(prof.__class__.__name__)
-			for x, y in zip(X, Y):
-				tree, operands = tools.tree_of(operation, x, context)
-				perf = performance(x,tools.benchmark(prof, tree, operation))
-				y.append(perf)
-        #Pruning of useless profiles
-        X = np.array(X)
-        Y = np.array(Y)
-        if len(Y[0]) > 1:
-            idx = np.where(np.bincount(np.argmax(Y, 1), minlength=len(profiles))==0)[0]
-            profiles = [p for ip,p in enumerate(profiles) if ip not in idx]
-            Y = np.delete(Y, idx, axis=1) 
+            # Adding external profiles
+            for prof in tools.external_profiles(operation):
+                profiles.append(prof.__class__.__name__)
+                for x, y in zip(X, Y):
+                    tree, operands = tools.tree_of(operation, x, context)
+                    perf = performance(x, tools.benchmark(prof, tree, operation))
+                    y.append(perf)
+            #Pruning of useless profiles
+            X = np.array(X)
+            Y = np.array(Y)
+            if len(Y[0]) > 1:
+                idx = np.where(np.bincount(np.argmax(Y, 1), minlength=len(profiles))==0)[0]
+                profiles = [p for ip,p in enumerate(profiles) if ip not in idx]
+                Y = np.delete(Y, idx, axis=1)
         #Exporting to JSON
         json_path = tools.sanitize(device.name) + '.json' if not self.json_path else self.json_path
         if os.path.isfile(json_path):
@@ -206,12 +207,15 @@ class Tuner:
             json_data[operation_name] = {}
         json_data[operation_name][tools.dtype.__name__] = {}
         D = json_data[operation_name][tools.dtype.__name__]
-        if len(profiles) > 1:
-            clf, nrmse = model.train(X, Y, profiles)
-            D['predictor'] = [{'children_left': e.tree_.children_left.tolist(),
-                                'children_right': e.tree_.children_right.tolist(),
-                                'threshold': e.tree_.threshold.astype('float64').tolist(),
-                                'feature': e.tree_.feature.astype('float64').tolist(),
-                                'value': e.tree_.value[:,:,0].astype('float64').tolist()} for e in clf.estimators_]
-        D['profiles'] = [tools.convert(x) for x in profiles]
+        if operation in [sc.templates.gemm_nn, sc.templates.gemm_nt, sc.templates.gemm_tn, sc.templates.gemm_tt] and 'intel' in device.name.lower() and 'float32' in tools.dtype.__name__:
+            D['profiles'] = ['intelblas_gemm_image']
+        else:
+            if len(profiles) > 1:
+                clf, nrmse = model.train(X, Y, profiles)
+                D['predictor'] = [{'children_left': e.tree_.children_left.tolist(),
+                                    'children_right': e.tree_.children_right.tolist(),
+                                    'threshold': e.tree_.threshold.astype('float64').tolist(),
+                                    'feature': e.tree_.feature.astype('float64').tolist(),
+                                    'value': e.tree_.value[:,:,0].astype('float64').tolist()} for e in clf.estimators_]
+            D['profiles'] = [tools.convert(x) for x in profiles]
         json.dump(json_data, open(json_path,'w'))

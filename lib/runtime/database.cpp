@@ -27,7 +27,7 @@
 
 //Intel
 #include "database/intel/broadwell.hpp"
-
+#include "database/intel/skylake.hpp"
 //NVidia
 #include "database/nvidia/sm_3_0.hpp"
 #include "database/nvidia/sm_5_2.hpp"
@@ -51,6 +51,7 @@ const profiles::presets_type profiles::presets_ =
     DATABASE_ENTRY(UNKNOWN, UNKNOWN, UNKNOWN, database::nvidia::sm_6_1),
     //INTEL
     DATABASE_ENTRY(GPU, INTEL, BROADWELL, database::intel::broadwell),
+    DATABASE_ENTRY(GPU, INTEL, SKYLAKE, database::intel::skylake),
     //NVIDIA
     DATABASE_ENTRY(GPU, NVIDIA, SM_2_0, database::nvidia::sm_3_0),
     DATABASE_ENTRY(GPU, NVIDIA, SM_2_1, database::nvidia::sm_3_0),
