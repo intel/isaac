@@ -102,16 +102,17 @@ def tree_of(template, sizes, context):
         return sc.assign(C, sc.dot(AA, BB)), (A, B, C)
 
 def memory_footprint(template, sizes):
+    dtsize = dtype(0).size
     if issubclass(template, sc.templates.elementwise_1d):
-        return 4*3*sizes[0]*1e-9
+        return dtsize*3*sizes[0]*1e-9
     elif issubclass(template, sc.templates.reduce_1d):
-        return 4*2*sizes[0]*1e-9
+        return dtsize*2*sizes[0]*1e-9
     elif issubclass(template, sc.templates.elementwise_2d):
-        return 4*sizes[0]*sizes[1]*1e-9
+        return dtsize*sizes[0]*sizes[1]*1e-9
     elif issubclass(template, sc.templates.reduce_2d):
-        return 4*sizes[0]*sizes[1]*1e-9
+        return dtsize*sizes[0]*sizes[1]*1e-9
     elif issubclass(template, sc.templates.gemm):
-        return 4*(sizes[0]*sizes[1] + sizes[0]*sizes[2] + sizes[1]*sizes[2])*1e-9
+        return dtsize*(sizes[0]*sizes[1] + sizes[0]*sizes[2] + sizes[1]*sizes[2])*1e-9
     
 def metric_of(template):
     memory_bound = [sc.templates.elementwise_1d, sc.templates.reduce_1d, sc.templates.elementwise_2d, sc.templates.reduce_2d]
@@ -130,12 +131,24 @@ def external_profiles(template):
     res = []
     if template is sc.templates.gemm_nn:
         res += [sc.templates.cublas_gemm('N','N')]
+        if 'float32' in dtype.__name__:
+            res += [sc.templates.intelblas_gemm('N','N')]
+            res += [sc.templates.intelblas_gemm_image('N','N')]
     elif template is sc.templates.gemm_tn:
         res += [sc.templates.cublas_gemm('T','N')]
+        if 'float32' in dtype.__name__:
+            res += [sc.templates.intelblas_gemm('T','N')]
+            res += [sc.templates.intelblas_gemm_image('T','N')]
     elif template is sc.templates.gemm_nt:
         res += [sc.templates.cublas_gemm('N','T')]
+        if 'float32' in dtype.__name__:
+            res += [sc.templates.intelblas_gemm('N','T')]
+            res += [sc.templates.intelblas_gemm_image('N','T')]
     elif template is sc.templates.gemm_tt:
         res += [sc.templates.cublas_gemm('T','T')]
+        if 'float32' in dtype.__name__:
+            res += [sc.templates.intelblas_gemm('T','T')]
+            res += [sc.templates.intelblas_gemm_image('T','T')]
     return res
         
 def genetic_infos_of(template):
