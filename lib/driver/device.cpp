@@ -87,17 +87,63 @@ Device::Architecture Device::architecture() const
       if(brand.find("v6")!=std::string::npos)
         return Architecture::KABYLAKE;
     }
-    size_t idx = brand.find('-');
-    if(idx!=std::string::npos){
-      if(brand[idx+1]=='4')
-        return Architecture::HASWELL;
-      if(brand[idx+1]=='5')
-        return Architecture::BROADWELL;
-      if(brand[idx+1]=='6')
-        return Architecture::SKYLAKE;
-      if(brand[idx+1]=='7')
-        return Architecture::KABYLAKE;
+    if(brand.find("Core")!=std::string::npos){
+      size_t idx = brand.find('-');
+      if(idx!=std::string::npos){
+        if(brand[idx+1]=='4')
+          return Architecture::HASWELL;
+        if(brand[idx+1]=='5')
+          return Architecture::BROADWELL;
+        if(brand[idx+1]=='6')
+          return Architecture::SKYLAKE;
+        if(brand[idx+1]=='7')
+          return Architecture::KABYLAKE;
+      }
     }
+    if(brand.find("Celeron")!=std::string::npos) {
+      // APL Goldmont
+      if(brand.find("J3355")!=std::string::npos ||
+         brand.find("J3455")!=std::string::npos ||
+         brand.find("N3350")!=std::string::npos ||
+         brand.find("N3450")!=std::string::npos)
+        return Architecture::SKYLAKE;
+      // BSW Airmont
+      if(brand.find("3160")!=std::string::npos ||
+         brand.find("3150")!=std::string::npos ||
+         brand.find("3060")!=std::string::npos ||
+         brand.find("3050")!=std::string::npos ||
+         brand.find("3010")!=std::string::npos ||
+         brand.find("3000")!=std::string::npos)
+        return Architecture::BROADWELL;
+      // Gemini Lake
+      if(brand.find("J4105")!=std::string::npos ||
+         brand.find("J4005")!=std::string::npos ||
+         brand.find("N4100")!=std::string::npos ||
+         brand.find("N4000")!=std::string::npos)
+        return Architecture::KABYLAKE;
+      // Celeron Kabylake
+      if(brand.find("3965")!=std::string::npos ||
+         brand.find("3950")!=std::string::npos ||
+         brand.find("3930")!=std::string::npos ||
+         brand.find("3865")!=std::string::npos)
+        return Architecture::KABYLAKE;
+      // Celeron Skylake
+      if(brand.find("3955")!=std::string::npos ||
+         brand.find("3920")!=std::string::npos ||
+         brand.find("3902")!=std::string::npos ||
+         brand.find("3900")!=std::string::npos ||
+         brand.find("3855")!=std::string::npos)
+        return Architecture::SKYLAKE;
+      // Celeron Broadwell
+      if(brand.find("3765")!=std::string::npos ||
+         brand.find("3755")!=std::string::npos ||
+         brand.find("3215")!=std::string::npos ||
+         brand.find("3205")!=std::string::npos)
+        return Architecture::BROADWELL;
+    }
+    std::cerr << "ISAAC: unknow Intel CPU ID:" << brand << std::endl;
+    std::cerr << "ISAAC: use SKYLAKE by default." << std::endl;
+    return Architecture::SKYLAKE;
   }
   //NVidia
   if(vdr==Vendor::NVIDIA){
