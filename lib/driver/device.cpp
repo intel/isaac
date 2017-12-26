@@ -141,6 +141,23 @@ Device::Architecture Device::architecture() const
          brand.find("3205")!=std::string::npos)
         return Architecture::BROADWELL;
     }
+
+    if(brand.find("Atom")!=std::string::npos) {
+      // APL SKYLAKE
+      if(brand.find("E3930")!=std::string::npos ||
+         brand.find("E3940")!=std::string::npos ||
+         brand.find("N3950")!=std::string::npos)
+        return Architecture::SKYLAKE;
+      // BSW/CHT Airmont
+      if(brand.find("Z8750")!=std::string::npos ||
+         brand.find("Z8700")!=std::string::npos ||
+         brand.find("Z8550")!=std::string::npos ||
+         brand.find("Z8350")!=std::string::npos ||
+         brand.find("Z8330")!=std::string::npos ||
+         brand.find("Z8300")!=std::string::npos ||
+         brand.find("Z8000")!=std::string::npos)
+        return Architecture::BROADWELL;
+    }
     std::cerr << "ISAAC: unknow Intel CPU ID:" << brand << std::endl;
     std::cerr << "ISAAC: use SKYLAKE by default." << std::endl;
     return Architecture::SKYLAKE;
